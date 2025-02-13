@@ -19,8 +19,19 @@ class observations(object):
     
     def __init__(self, data_path='./', output_path=None, init_interfaces=None, init_orients=None, output_prefix='No_entry'):
         
+
+        '''
+        The init will create a dataframe to populate with the adding functions included in this class.
+
+        You can import a CSV initially from file by including the path as an argument for "init_interfaces" or "init_orients"
+
+        setting the data_path and output_path act as a prefix for each input/output function.
+
+        ''' 
+
+
         # output parameters
-        self.output_path = output_path 
+        self.output_path = output_path  
         self.output_prefix = output_prefix
         
         # input parameters
@@ -52,9 +63,11 @@ class observations(object):
 
         self.icols = ['X', 'Y', 'Z','col','row', 'depth', 'depth1', 'depth2']
 
-        self.ocols = ['X','Y','Z','polarity','formation','azimuth','dip']
         
-
+        self.ocols = ["input_ID", 'input_type', 'correlation', 'doi', 'source',
+                        "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance']
+        self.input_id_counter = 1 
 
     def show_current_stats(self):
 
@@ -206,6 +219,14 @@ class observations(object):
 
 
         #Keyword Args assingment
+
+        # metadata
+        input_id = kwargs.get('input_id')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+
         azimuth_field = kwargs.get('azimuth_field')
         dip_field = kwargs.get('dip_field')
         formation_field = kwargs.get('formation_field')
@@ -223,6 +244,35 @@ class observations(object):
         for file in file_list:
             shp_to_add = gpd.read_file(self.data_path+file)
             shape_template = pd.DataFrame(None)
+            
+            #Metadata logic tree
+            if input_id != None:
+                shape_template['input_ID'] = input_id
+            else:
+                shape_template['input_ID'] = self.input_id_counter
+                self.input_id_counter = self.input_id_counter+1
+
+            if input_type != None:
+                shape_template['input_type'] = input_type
+            else:
+                shape_template['input_type'] = 'Unknown'
+            
+            if self_correlation != None:
+                shape_template['correlation'] = self_correlation
+            else:
+                shape_template['correlation'] = 0
+
+            if doi != None:
+                shape_template['doi'] = doi
+            else:
+                shape_template['doi'] = 'no doi'
+
+            if source != None:
+                shape_template['source'] = source
+            else:
+                shape_template['source'] = 'no souce'
+
+            #point data logic tree
             shape_template['X'] = shp_to_add.geometry.x
             shape_template['Y'] = shp_to_add.geometry.y
             if zdepth==None:
@@ -282,6 +332,14 @@ class observations(object):
 
     def add_shapefile_to_orients(self, file_list, zdepth=None, formation='NOT_ENTERED', azimuth_field=None, set_azimuth=None, dip=None, **kwargs):
 
+        #Keyword Args assingment
+        
+        # metadata
+        input_id = kwargs.get('input_id')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
 
         #Keyword Args assingment
         azimuth_field = kwargs.get('azimuth_field')
@@ -300,6 +358,34 @@ class observations(object):
         for file in file_list:
             shp_to_add = gpd.read_file(self.data_path+file)
             shape_template = pd.DataFrame(None)
+            #Metadata logic tree
+            if input_id != None:
+                shape_template['input_ID'] = input_id
+            else:
+                shape_template['input_ID'] = self.input_id_counter
+                self.input_id_counter = self.input_id_counter+1
+
+            if input_type != None:
+                shape_template['input_type'] = input_type
+            else:
+                shape_template['input_type'] = 'Unknown'
+            
+            if self_correlation != None:
+                shape_template['correlation'] = self_correlation
+            else:
+                shape_template['correlation'] = 0
+
+            if doi != None:
+                shape_template['doi'] = doi
+            else:
+                shape_template['doi'] = 'no doi'
+
+            if source != None:
+                shape_template['source'] = source
+            else:
+                shape_template['source'] = 'no souce'
+
+            #point data logic tree
             shape_template['X'] = shp_to_add.geometry.x
             shape_template['Y'] = shp_to_add.geometry.y
             if zdepth==None:
@@ -354,7 +440,7 @@ class observations(object):
         print(f"Completed adding {len(file_list)} shapefile(s) to orients")
 
 
-    def sample_surface_from_points(self, points, method='grid', num_points=100, grid_spacing=10, flip_normal=False, auto_orient_normals=False):
+    def sample_surface_from_points(self, points, method='grid', num_points=100, grid_spacing=10, flip_normal=False, auto_orient_normals=False, **kwargs):
         """
         Construct a surface from input points, compute normals, and sample points.
 
@@ -367,6 +453,10 @@ class observations(object):
         Returns:
         - pd.DataFrame: DataFrame with columns ["x", "y", "z", "nx", "ny", "nz"].
         """
+
+        #Keyword Args assingment
+
+
         # Create a PyVista point cloud
         point_cloud = pv.PolyData(points)
 
@@ -450,6 +540,16 @@ class observations(object):
         return df
 
     def add_surface_points_to_orients(self, surface, sample_method='grid', num_points=100, grid_spacing=10, polarity=1, auto_orient_normals=True, flip_normal=False, **kwargs):
+        
+        #Keyword Args assingment
+        
+        # metadata
+        input_id = kwargs.get('input_id')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+        
         #Assigning KWargs
         X_variance = kwargs.get('xvar')
         Y_variance = kwargs.get('yvar') 
@@ -481,8 +581,35 @@ class observations(object):
         
         df['polarity'] = polarity
 
-        #df[['azimuth', 'dip']] = df.apply(compute_azimuth_dip, axis=1) ######
-        #df = self.update_dataframe_with_dip_azimuth(df)
+        #Metadata logic tree
+        if input_id != None:
+            df['input_ID'] = input_id
+        else:
+            df['input_ID'] = self.input_id_counter
+            self.input_id_counter = self.input_id_counter+1
+
+        if input_type != None:
+            df['input_type'] = input_type
+        else:
+            df['input_type'] = 'Unknown'
+            
+        if self_correlation != None:
+            df['correlation'] = self_correlation
+        else:
+            df['correlation'] = 0
+
+        if doi != None:
+            df['doi'] = doi
+        else:
+            df['doi'] = 'no doi'
+
+        if source != None:
+            df['source'] = source
+        else:
+            df['source'] = 'no souce'
+
+        #point data logic tree        
+        
         if X_variance != None:
             df['X_variance'] = X_variance
         else:
@@ -514,7 +641,18 @@ class observations(object):
 
 
     def add_surface_points_to_interfaces(self, surface, sample_method='grid', num_points=100, grid_spacing=10, polarity=1, auto_orient_normals=True, flip_normal=False, **kwargs):
-        #Assigning KWargs
+        
+
+        
+        #Keyword Args assingment
+        
+        # metadata
+        input_id = kwargs.get('input_id')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+        
         X_variance = kwargs.get('xvar')
         Y_variance = kwargs.get('yvar') 
         Z_variance = kwargs.get('zvar') 
@@ -543,8 +681,35 @@ class observations(object):
         df['formation'] = formation
         df['polarity'] = polarity
 
-        #df[['azimuth', 'dip']] = df.apply(compute_azimuth_dip, axis=1) ######
-        #df = self.update_dataframe_with_dip_azimuth(df)
+        #Metadata logic tree
+        if input_id != None:
+            df['input_ID'] = input_id
+        else:
+            df['input_ID'] = self.input_id_counter
+            self.input_id_counter = self.input_id_counter+1
+
+        if input_type != None:
+            df['input_type'] = input_type
+        else:
+            df['input_type'] = 'Unknown'
+            
+        if self_correlation != None:
+            df['correlation'] = self_correlation
+        else:
+            df['correlation'] = 0
+
+        if doi != None:
+            df['doi'] = doi
+        else:
+            df['doi'] = 'no doi'
+
+        if source != None:
+            df['source'] = source
+        else:
+            df['source'] = 'no souce'
+
+        #point data logic tree
+
         if X_variance != None:
             df['X_variance'] = X_variance
         else:
@@ -574,6 +739,14 @@ class observations(object):
 
     def add_shapefile_linestrings_and_compute_azimuth_to_orients(self, filename, fraction=1, z=0, azimuth_reverse=True, **kwargs):
         #Keyword Args assingment
+        
+        # metadata
+        input_id = kwargs.get('input_id')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+
         dip = kwargs.get('dip')
         formation = kwargs.get('formation')
         X_variance = kwargs.get('xvar')
@@ -592,6 +765,35 @@ class observations(object):
             shape_template['formation'] = formation
         else:
             shape_template.rename(columns={'Name': 'formation'}, inplace=True)
+
+        #Metadata logic tree
+        if input_id != None:
+            shape_template['input_ID'] = input_id
+        else:
+            shape_template['input_ID'] = self.input_id_counter
+            self.input_id_counter = self.input_id_counter+1
+
+        if input_type != None:
+            shape_template['input_type'] = input_type
+        else:
+            shape_template['input_type'] = 'Unknown'
+            
+        if self_correlation != None:
+            shape_template['correlation'] = self_correlation
+        else:
+            shape_template['correlation'] = 0
+
+        if doi != None:
+            shape_template['doi'] = doi
+        else:
+            shape_template['doi'] = 'no doi'
+
+        if source != None:
+            shape_template['source'] = source
+        else:
+            shape_template['source'] = 'no souce'
+
+            #point data variance logic tree
         if X_variance != None:
             shape_template['X_variance'] = X_variance
         else:
@@ -618,8 +820,9 @@ class observations(object):
             shape_template['dip_variance'] = 1    
         
 
-        df = pd.DataFrame(shape_template, columns=["X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
-        
+        df = pd.DataFrame(shape_template, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
+                                                   "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                                                   'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
         if azimuth_reverse:
             df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
         else:
@@ -630,6 +833,14 @@ class observations(object):
 
     def add_shapefile_linestrings_and_compute_azimuth_to_interfaces(self, filename, fraction=1, z=0, azimuth_reverse=True, **kwargs):
         #Keyword Args assingment
+        
+        # metadata
+        input_id = kwargs.get('input_id')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+
         dip = kwargs.get('dip')
         formation = kwargs.get('formation')
         X_variance = kwargs.get('xvar')
@@ -648,6 +859,35 @@ class observations(object):
             shape_template['formation'] = formation
         else:
             shape_template.rename(columns={'Name': 'formation'}, inplace=True)
+        
+        #Metadata logic tree
+        if input_id != None:
+            shape_template['input_ID'] = input_id
+        else:
+            shape_template['input_ID'] = self.input_id_counter
+            self.input_id_counter = self.input_id_counter+1
+
+        if input_type != None:
+            shape_template['input_type'] = input_type
+        else:
+            shape_template['input_type'] = 'Unknown'
+            
+        if self_correlation != None:
+            shape_template['correlation'] = self_correlation
+        else:
+            shape_template['correlation'] = 0
+
+        if doi != None:
+            shape_template['doi'] = doi
+        else:
+            shape_template['doi'] = 'no doi'
+
+        if source != None:
+            shape_template['source'] = source
+        else:
+            shape_template['source'] = 'no souce'
+
+            #point data variance logic tree
         if X_variance != None:
             shape_template['X_variance'] = X_variance
         else:
@@ -674,7 +914,9 @@ class observations(object):
             shape_template['dip_variance'] = 1    
         
 
-        df = pd.DataFrame(shape_template, columns=["X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
+        df = pd.DataFrame(shape_template, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
+                                                   "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                                                   'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
         
         if azimuth_reverse:
             df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
