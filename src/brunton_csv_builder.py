@@ -66,7 +66,10 @@ class observations(object):
         
         self.ocols = ["input_ID", 'input_type', 'correlation', 'doi', 'source',
                         "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
-                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance']
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance', 
+                        'min_depth_confidence','max_depth_confidence']
+         
+
         self.input_id_counter = 1 
 
     def show_current_stats(self):
@@ -227,6 +230,11 @@ class observations(object):
         doi = kwargs.get('doi')
         source = kwargs.get('source')
 
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
+
+
         azimuth_field = kwargs.get('azimuth_field')
         dip_field = kwargs.get('dip_field')
         formation_field = kwargs.get('formation_field')
@@ -319,7 +327,15 @@ class observations(object):
                 shape_template['dip_variance'] = dip_variance
             else:
                 shape_template['dip_variance'] = 1
-
+            if min_conf != None:
+                shape_template['min_depth_confidence'] = min_conf
+            else:
+                shape_template['min_depth_confidence'] = None
+            
+            if max_conf != None:
+                shape_template['max_depth_confidence'] = max_conf
+            else:
+                shape_template['max_depth_confidence'] = None 
 
             shape_template['polarity'] = 1
             #shape_template['azimuth'] = azimuth
@@ -340,6 +356,11 @@ class observations(object):
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
         source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
+
 
         #Keyword Args assingment
         azimuth_field = kwargs.get('azimuth_field')
@@ -429,6 +450,16 @@ class observations(object):
                 shape_template['dip_variance'] = dip_variance
             else:
                 shape_template['dip_variance'] = 1
+            
+            if min_conf != None:
+                shape_template['min_depth_confidence'] = min_conf
+            else:
+                shape_template['min_depth_confidence'] = None
+            
+            if max_conf != None:
+                shape_template['max_depth_confidence'] = max_conf
+            else:
+                shape_template['max_depth_confidence'] = None 
 
 
             shape_template['polarity'] = 1
@@ -550,6 +581,10 @@ class observations(object):
         doi = kwargs.get('doi')
         source = kwargs.get('source')
         
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
+
         #Assigning KWargs
         X_variance = kwargs.get('xvar')
         Y_variance = kwargs.get('yvar') 
@@ -606,7 +641,7 @@ class observations(object):
         if source != None:
             df['source'] = source
         else:
-            df['source'] = 'no souce'
+            df['source'] = 'no source'
 
         #point data logic tree        
         
@@ -634,6 +669,16 @@ class observations(object):
             df['dip_variance'] = dip_variance
         else:
             df['dip_variance'] = 1
+        
+        if min_conf != None:
+            df['min_depth_confidence'] = min_conf
+        else:
+            df['min_depth_confidence'] = None
+            
+        if max_conf != None:
+            df['max_depth_confidence'] = max_conf
+        else:
+            df['max_depth_confidence'] = None
 
 
         self.orients = pd.concat((self.orients,df.sample(frac=frac)))
@@ -652,6 +697,10 @@ class observations(object):
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
         source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
         
         X_variance = kwargs.get('xvar')
         Y_variance = kwargs.get('yvar') 
@@ -706,7 +755,7 @@ class observations(object):
         if source != None:
             df['source'] = source
         else:
-            df['source'] = 'no souce'
+            df['source'] = 'no source'
 
         #point data logic tree
 
@@ -734,6 +783,16 @@ class observations(object):
             df['dip_variance'] = dip_variance
         else:
             df['dip_variance'] = 1
+        
+        if min_conf != None:
+            df['min_depth_confidence'] = min_conf
+        else:
+            df['min_depth_confidence'] = None
+            
+        if max_conf != None:
+            df['max_depth_confidence'] = max_conf
+        else:
+            df['max_depth_confidence'] = None 
 
         self.interfaces = pd.concat((self.interfaces,df.sample(frac=frac)))
 
@@ -746,6 +805,10 @@ class observations(object):
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
         source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
 
         dip = kwargs.get('dip')
         formation = kwargs.get('formation')
@@ -791,7 +854,7 @@ class observations(object):
         if source != None:
             shape_template['source'] = source
         else:
-            shape_template['source'] = 'no souce'
+            shape_template['source'] = 'no source'
 
             #point data variance logic tree
         if X_variance != None:
@@ -817,12 +880,22 @@ class observations(object):
         if dip_variance != None:
             shape_template['dip_variance'] = dip_variance
         else:
-            shape_template['dip_variance'] = 1    
-        
+            shape_template['dip_variance'] = 1
+
+        if min_conf != None:
+            shape_template['min_depth_confidence'] = min_conf
+        else:
+            shape_template['min_depth_confidence'] = None
+            
+        if max_conf != None:
+            shape_template['max_depth_confidence'] = max_conf
+        else:
+            shape_template['max_depth_confidence'] = None 
 
         df = pd.DataFrame(shape_template, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
-                                                   "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
-                                                   'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
+                        "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance', 
+                        'min_depth_confidence','max_depth_confidence'])
         if azimuth_reverse:
             df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
         else:
@@ -840,6 +913,10 @@ class observations(object):
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
         source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
 
         dip = kwargs.get('dip')
         formation = kwargs.get('formation')
@@ -885,7 +962,7 @@ class observations(object):
         if source != None:
             shape_template['source'] = source
         else:
-            shape_template['source'] = 'no souce'
+            shape_template['source'] = 'no source'
 
             #point data variance logic tree
         if X_variance != None:
@@ -911,12 +988,23 @@ class observations(object):
         if dip_variance != None:
             shape_template['dip_variance'] = dip_variance
         else:
-            shape_template['dip_variance'] = 1    
+            shape_template['dip_variance'] = 1
+
+        if min_conf != None:
+            shape_template['min_depth_confidence'] = min_conf
+        else:
+            shape_template['min_depth_confidence'] = None
+            
+        if max_conf != None:
+            shape_template['max_depth_confidence'] = max_conf
+        else:
+            shape_template['max_depth_confidence'] = None     
         
 
         df = pd.DataFrame(shape_template, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
-                                                   "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
-                                                   'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
+                        "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance', 
+                        'min_depth_confidence','max_depth_confidence'])
         
         if azimuth_reverse:
             df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
