@@ -162,7 +162,7 @@ class observations(object):
 
         # Apply the function row-wise and update the DataFrame
         df[['azimuth', 'dip']] = df.apply(compute_azimuth_dip, axis=1)
-        print(df.head(10))
+        #print(df.head(10))
         return df
 
     # ____________ THESE ARE THE ADDING FUNCTIONS _______________
@@ -354,7 +354,7 @@ class observations(object):
         print(f"Completed adding {len(file_list)} shapefile(s) to orients")
 
 
-    def sample_surface_from_points(self, points, method='grid', num_points=100, grid_spacing=10):
+    def sample_surface_from_points(self, points, method='grid', num_points=100, grid_spacing=10, flip_normal=False, auto_orient_normals=False):
         """
         Construct a surface from input points, compute normals, and sample points.
 
@@ -374,7 +374,7 @@ class observations(object):
         surface = point_cloud.delaunay_2d()
 
         # Compute normals for the surface
-        surface = surface.compute_normals(auto_orient_normals=True, point_normals=True)
+        surface = surface.compute_normals(auto_orient_normals=auto_orient_normals, point_normals=True, flip_normals=flip_normal)
 
         # Extract bounds of the surface
         bounds = surface.bounds  # (xmin, xmax, ymin, ymax, zmin, zmax)
@@ -449,7 +449,14 @@ class observations(object):
         #df['azimuth', 'dip'] = df['nx','ny','nz'].apply(pole_vector_to_dip_azimuth, axis=1)
         return df
 
-    def add_surface_points_to_orients(self, surface, sample_method='grid', num_points=100, grid_spacing=10, **kwargs):
+    def add_surface_points_to_orients(self, surface, sample_method='grid', num_points=100, grid_spacing=10, polarity=1, auto_orient_normals=True, flip_normal=False, **kwargs):
+        #Assigning KWargs
+        X_variance = kwargs.get('xvar')
+        Y_variance = kwargs.get('yvar') 
+        Z_variance = kwargs.get('zvar') 
+        dip_variance = kwargs.get('dipvar') 
+        azimuth_variance = kwargs.get('azivar')  
+        
         formation = kwargs.get('formation')
         if formation == None:
             formation = 'NOT_ENTERED'
@@ -469,13 +476,51 @@ class observations(object):
             surf_.append((point.x,point.y,point.z))
 
 
-        df = self.sample_surface_from_points(surf_, method, num_points, grid_spacing)
+        df = self.sample_surface_from_points(surf_, method, num_points, grid_spacing, auto_orient_normals=auto_orient_normals, flip_normal=flip_normal)
         df['formation'] = formation
+        
+        df['polarity'] = polarity
+
+        #df[['azimuth', 'dip']] = df.apply(compute_azimuth_dip, axis=1) ######
+        #df = self.update_dataframe_with_dip_azimuth(df)
+        if X_variance != None:
+            df['X_variance'] = X_variance
+        else:
+            df['X_variance'] = 1
+
+        if Y_variance != None:
+            df['Y_variance'] = Y_variance
+        else:
+            df['Y_variance'] = 1
+
+        if Z_variance != None:
+            df['Z_variance'] = Z_variance
+        else:
+            df['Z_variance'] = 1
+            
+        if azimuth_variance != None:
+            df['azimuth_variance'] = azimuth_variance
+        else:
+            df['azimuth_variance'] = 1
+            
+        if dip_variance != None:
+            df['dip_variance'] = dip_variance
+        else:
+            df['dip_variance'] = 1
+
+
         self.orients = pd.concat((self.orients,df.sample(frac=frac)))
 
 
 
-    def add_surface_points_to_interfaces(self, surface, sample_method='grid', num_points=100, grid_spacing=10, **kwargs):
+    def add_surface_points_to_interfaces(self, surface, sample_method='grid', num_points=100, grid_spacing=10, polarity=1, auto_orient_normals=True, flip_normal=False, **kwargs):
+        #Assigning KWargs
+        X_variance = kwargs.get('xvar')
+        Y_variance = kwargs.get('yvar') 
+        Z_variance = kwargs.get('zvar') 
+        dip_variance = kwargs.get('dipvar') 
+        azimuth_variance = kwargs.get('azivar')  
+        
         formation = kwargs.get('formation')
         if formation == None:
             formation = 'NOT_ENTERED'
@@ -494,13 +539,43 @@ class observations(object):
         for point in gdf.geometry:
             surf_.append((point.x,point.y,point.z))
             
-        df = self.sample_surface_from_points(surf_, method, num_points, grid_spacing)
+        df = self.sample_surface_from_points(surf_, method, num_points, grid_spacing, auto_orient_normals=auto_orient_normals, flip_normal=flip_normal)
         df['formation'] = formation
+        df['polarity'] = polarity
+
+        #df[['azimuth', 'dip']] = df.apply(compute_azimuth_dip, axis=1) ######
+        #df = self.update_dataframe_with_dip_azimuth(df)
+        if X_variance != None:
+            df['X_variance'] = X_variance
+        else:
+            df['X_variance'] = 1
+
+        if Y_variance != None:
+            df['Y_variance'] = Y_variance
+        else:
+            df['Y_variance'] = 1
+
+        if Z_variance != None:
+            df['Z_variance'] = Z_variance
+        else:
+            df['Z_variance'] = 1
+            
+        if azimuth_variance != None:
+            df['azimuth_variance'] = azimuth_variance
+        else:
+            df['azimuth_variance'] = 1
+            
+        if dip_variance != None:
+            df['dip_variance'] = dip_variance
+        else:
+            df['dip_variance'] = 1
 
         self.interfaces = pd.concat((self.interfaces,df.sample(frac=frac)))
 
-    def add_shapefile_linestrings_and_compute_azimuth_to_orients(self, filename, fraction=1, z=0, **kwargs):
+    def add_shapefile_linestrings_and_compute_azimuth_to_orients(self, filename, fraction=1, z=0, azimuth_reverse=True, **kwargs):
         #Keyword Args assingment
+        dip = kwargs.get('dip')
+        formation = kwargs.get('formation')
         X_variance = kwargs.get('xvar')
         Y_variance = kwargs.get('yvar') 
         Z_variance = kwargs.get('zvar') 
@@ -513,7 +588,10 @@ class observations(object):
         #print(inputgdf.head(3))
         shape_template = gg.vector.extract_orientations_from_map(gdf=inputgdf)
         shape_template['Z'] = z
-        shape_template.rename(columns={'Name': 'formation'}, inplace=True)
+        if formation != None:
+            shape_template['formation'] = formation
+        else:
+            shape_template.rename(columns={'Name': 'formation'}, inplace=True)
         if X_variance != None:
             shape_template['X_variance'] = X_variance
         else:
@@ -541,15 +619,23 @@ class observations(object):
         
 
         df = pd.DataFrame(shape_template, columns=["X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
+        
+        if azimuth_reverse:
+            df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
+        else:
+            df['azimuth'] = df['azimuth']-90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults
+        df['dip'] = dip 
         self.orients = pd.concat((self.orients,df.sample(frac=fraction)))
 
 
-    def add_shapefile_linestrings_and_compute_azimuth_to_interfaces(self, filename, fraction=1, z=0, **kwargs):
+    def add_shapefile_linestrings_and_compute_azimuth_to_interfaces(self, filename, fraction=1, z=0, azimuth_reverse=True, **kwargs):
         #Keyword Args assingment
+        dip = kwargs.get('dip')
+        formation = kwargs.get('formation')
         X_variance = kwargs.get('xvar')
         Y_variance = kwargs.get('yvar') 
-        Z_variance = kwargs.get('zvar') 
-        dip_variance = kwargs.get('dipvar') 
+        Z_variance = kwargs.get('zvar')
+        dip_variance = kwargs.get('dipvar')
         azimuth_variance = kwargs.get('azivar')
         
         file = self.data_path+filename
@@ -558,7 +644,10 @@ class observations(object):
         #print(inputgdf.head(3))
         shape_template = gg.vector.extract_orientations_from_map(gdf=inputgdf)
         shape_template['Z'] = z
-        shape_template.rename(columns={'Name': 'formation'}, inplace=True)
+        if formation != None:
+            shape_template['formation'] = formation
+        else:
+            shape_template.rename(columns={'Name': 'formation'}, inplace=True)
         if X_variance != None:
             shape_template['X_variance'] = X_variance
         else:
@@ -586,6 +675,12 @@ class observations(object):
         
 
         df = pd.DataFrame(shape_template, columns=["X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance'])
+        
+        if azimuth_reverse:
+            df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
+        else:
+            df['azimuth'] = df['azimuth']-90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults
+        df['dip'] = dip 
         self.interfaces = pd.concat((self.interfaces,df.sample(frac=fraction)))
 
     # _____________ EXPORTING AND VISUALIZATION FUNCTIONS ________________
