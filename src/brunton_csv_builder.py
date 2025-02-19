@@ -70,7 +70,7 @@ class observations(object):
                         'min_depth_confidence','max_depth_confidence']
          
 
-        self.input_id_counter = 1 
+        self.input_ID_counter = 1 
 
     def show_current_stats(self):
 
@@ -183,38 +183,270 @@ class observations(object):
 
     # ____________ THESE ARE THE ADDING FUNCTIONS _______________
 
-    def add_csv_to_interfaces(self, file_list=[], **kwargs):
+    def add_csv_to_interfaces(self, file_list=[], delimiter="\t", zdepth=None, formation='NOT_ENTERED', azimuth=None, dip=None, **kwargs):
         '''
         input [list]: this is a list of files that you want to add
         '''
+        #Keyword Args assingment
+        
+        # metadata
+        input_ID = kwargs.get('input_ID')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
+
+
+        #Keyword Args assingment
+        azimuth_field = kwargs.get('azimuth_field')
+        dip_field = kwargs.get('dip_field')
+        formation_field = kwargs.get('formation_field')
+        X_variance = kwargs.get('xvar')
+        Y_variance = kwargs.get('yvar') 
+        Z_variance = kwargs.get('zvar') 
+        dip_variance = kwargs.get('dipvar') 
+        azimuth_variance = kwargs.get('azivar')
         _sample_size = kwargs.get('sample_size')
         if _sample_size==None:
             _sample_size=1
-    
+
+        _sample_size = kwargs.get('sample_size')
+        if _sample_size==None:
+            _sample_size=1
+
         for file in file_list:
-            print(f"adding: {self.data_path+file}")
-            csv_to_add = pd.read_csv(self.data_path+file, names=self.icols)
-            #csv_to_add = pd.read_csv(self.data_path+file, sep=' ', names=self.icols, skiprows=np.arange(20))
-            self.interfaces = pd.concat((self.interfaces,csv_to_add.sample(frac=_sample_size)))
+            shape_template = pd.read_csv(file, delimiter=delimiter)
+
+            if formation_field != None:
+                    shape_template['formation'] = shape_template[formation_field]
+            else:
+                    shape_template['formation'] = formation
+            if azimuth_field != None:
+                    shape_template['azimuth'] = shape_template[azimuth_field]
+            else:
+                    shape_template['azimuth'] = azimuth
+            if dip_field != None:
+                    shape_template['dip'] = shape_template[dip_field]
+            else:
+                    shape_template['dip'] = dip
+
+            if X_variance != None:
+                    shape_template['X_variance'] = X_variance
+            else:
+                    shape_template['X_variance'] = 1
+
+            if Y_variance != None:
+                    shape_template['Y_variance'] = Y_variance
+            else:
+                    shape_template['Y_variance'] = 1
+
+            if Z_variance != None:
+                    shape_template['Z_variance'] = Z_variance
+            else:
+                    shape_template['Z_variance'] = 1
+                
+            if azimuth_variance != None:
+                    shape_template['azimuth_variance'] = azimuth_variance
+            else:
+                    shape_template['azimuth_variance'] = 1
+                
+            if dip_variance != None:
+                    shape_template['dip_variance'] = dip_variance
+            else:
+                    shape_template['dip_variance'] = 1
+            if min_conf != None:
+                    shape_template['min_depth_confidence'] = min_conf
+            else:
+                    shape_template['min_depth_confidence'] = None
+                
+            if max_conf != None:
+                    shape_template['max_depth_confidence'] = max_conf
+            else:
+                    shape_template['max_depth_confidence'] = None 
+
+                #Metadata logic tree
+            if input_ID != None:
+                    shape_template['input_ID'] = input_ID
+            else:
+                    shape_template['input_ID'] = self.input_ID_counter
+                    self.input_ID_counter = self.input_ID_counter+1
+
+            if input_type != None:
+                    shape_template['input_type'] = input_type
+            else:
+                    shape_template['input_type'] = 'Unknown'
+                
+            if self_correlation != None:
+                    shape_template['correlation'] = self_correlation
+            else:
+                    shape_template['correlation'] = 0
+
+            if doi != None:
+                    shape_template['doi'] = doi
+            else:
+                    shape_template['doi'] = 'no doi'
+
+            if source != None:
+                    shape_template['source'] = source
+            else:
+                    shape_template['source'] = 'no source'
+
+            if zdepth != None:
+                    shape_template['Z'] = zdepth
+
+            shape_template['polarity'] = 1
+                #shape_template['azimuth'] = azimuth
+                #shape_template['dip'] = dip
+
+
+            df = pd.DataFrame(shape_template, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
+                        "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance', 
+                        'min_depth_confidence','max_depth_confidence'])
+            
+            self.interfaces = pd.concat((self.interfaces,df.sample(frac=_sample_size)))
             
 
-        print(f"Completed adding {len(file_list)} CSV's")
+        print(f"Completed adding {len(file_list)} CSV's to interfaces")
+    
+            
 
-    def add_csv_to_orients(self, file_list=[], **kwargs):
+
+
+    def add_csv_to_orients(self, file_list=[], delimiter="\t", zdepth=None, formation='NOT_ENTERED', azimuth=None, dip=None, **kwargs):
         '''
         input [list]: this is a list of files that you want to add
         '''
+        #Keyword Args assingment
+        
+        # metadata
+        input_ID = kwargs.get('input_ID')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
+
+
+        #Keyword Args assingment
+        azimuth_field = kwargs.get('azimuth_field')
+        dip_field = kwargs.get('dip_field')
+        formation_field = kwargs.get('formation_field')
+        X_variance = kwargs.get('xvar')
+        Y_variance = kwargs.get('yvar') 
+        Z_variance = kwargs.get('zvar') 
+        dip_variance = kwargs.get('dipvar') 
+        azimuth_variance = kwargs.get('azivar')
         _sample_size = kwargs.get('sample_size')
         if _sample_size==None:
             _sample_size=1
-            
-    
+
+        _sample_size = kwargs.get('sample_size')
+        if _sample_size==None:
+            _sample_size=1
+
         for file in file_list:
-            csv_to_add = pd.read_csv(self.data_path+file, names=self.ocols)
-            self.orients = pd.concat((self.orients,csv_to_add.sample(frac=_sample_size)))
+            shape_template = pd.read_csv(file, delimiter=delimiter)
+
+            if formation_field != None:
+                    shape_template['formation'] = shape_template[formation_field]
+            else:
+                    shape_template['formation'] = formation
+
+            if azimuth_field != None:
+                    shape_template['azimuth'] = shape_template[azimuth_field]
+            else:
+                    shape_template['azimuth'] = azimuth
+            if dip_field != None:
+                    shape_template['dip'] = shape_template[dip_field]
+            else:
+                    shape_template['dip'] = dip
+
+            if X_variance != None:
+                    shape_template['X_variance'] = X_variance
+            else:
+                    shape_template['X_variance'] = 1
+
+            if Y_variance != None:
+                    shape_template['Y_variance'] = Y_variance
+            else:
+                    shape_template['Y_variance'] = 1
+
+            if Z_variance != None:
+                    shape_template['Z_variance'] = Z_variance
+            else:
+                    shape_template['Z_variance'] = 1
+                
+            if azimuth_variance != None:
+                    shape_template['azimuth_variance'] = azimuth_variance
+            else:
+                    shape_template['azimuth_variance'] = 1
+                
+            if dip_variance != None:
+                    shape_template['dip_variance'] = dip_variance
+            else:
+                    shape_template['dip_variance'] = 1
+            if min_conf != None:
+                    shape_template['min_depth_confidence'] = min_conf
+            else:
+                    shape_template['min_depth_confidence'] = None
+                
+            if max_conf != None:
+                    shape_template['max_depth_confidence'] = max_conf
+            else:
+                    shape_template['max_depth_confidence'] = None 
+
+                #Metadata logic tree
+            if input_ID != None:
+                    shape_template['input_ID'] = input_ID
+            else:
+                    shape_template['input_ID'] = self.input_ID_counter
+                    self.input_ID_counter = self.input_ID_counter+1
+
+            if input_type != None:
+                    shape_template['input_type'] = input_type
+            else:
+                    shape_template['input_type'] = 'Unknown'
+                
+            if self_correlation != None:
+                    shape_template['correlation'] = self_correlation
+            else:
+                    shape_template['correlation'] = 0
+
+            if doi != None:
+                    shape_template['doi'] = doi
+            else:
+                    shape_template['doi'] = 'no doi'
+
+            if source != None:
+                    shape_template['source'] = source
+            else:
+                    shape_template['source'] = 'no source'
+
+            if zdepth != None:
+                    shape_template['Z'] = zdepth
+
+            shape_template['polarity'] = 1
+                #shape_template['azimuth'] = azimuth
+                #shape_template['dip'] = dip
+
+
+            df = pd.DataFrame(shape_template, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
+                        "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance', 
+                        'min_depth_confidence','max_depth_confidence'])
+            
+            self.orients = pd.concat((self.orients,df.sample(frac=_sample_size)))
             
 
-        print(f"Completed adding {len(file_list)} CSV's")
+        print(f"Completed adding {len(file_list)} CSV's to orients")
 
 
     def add_shapefile_to_interfaces(self, file_list, zdepth=None, formation='NOT_ENTERED', azimuth=None, dip=None, **kwargs):
@@ -224,7 +456,7 @@ class observations(object):
         #Keyword Args assingment
 
         # metadata
-        input_id = kwargs.get('input_id')
+        input_ID = kwargs.get('input_ID')
         input_type = kwargs.get('input_type')
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
@@ -252,33 +484,6 @@ class observations(object):
         for file in file_list:
             shp_to_add = gpd.read_file(self.data_path+file)
             shape_template = pd.DataFrame(None)
-            
-            #Metadata logic tree
-            if input_id != None:
-                shape_template['input_ID'] = input_id
-            else:
-                shape_template['input_ID'] = self.input_id_counter
-                self.input_id_counter = self.input_id_counter+1
-
-            if input_type != None:
-                shape_template['input_type'] = input_type
-            else:
-                shape_template['input_type'] = 'Unknown'
-            
-            if self_correlation != None:
-                shape_template['correlation'] = self_correlation
-            else:
-                shape_template['correlation'] = 0
-
-            if doi != None:
-                shape_template['doi'] = doi
-            else:
-                shape_template['doi'] = 'no doi'
-
-            if source != None:
-                shape_template['source'] = source
-            else:
-                shape_template['source'] = 'no souce'
 
             #point data logic tree
             shape_template['X'] = shp_to_add.geometry.x
@@ -337,6 +542,33 @@ class observations(object):
             else:
                 shape_template['max_depth_confidence'] = None 
 
+            #Metadata logic tree
+            if input_ID != None:
+                shape_template['input_ID'] = input_ID
+            else:
+                shape_template['input_ID'] = self.input_ID_counter
+                self.input_ID_counter = self.input_ID_counter+1
+
+            if input_type != None:
+                shape_template['input_type'] = input_type
+            else:
+                shape_template['input_type'] = 'Unknown'
+            
+            if self_correlation != None:
+                shape_template['correlation'] = self_correlation
+            else:
+                shape_template['correlation'] = 0
+
+            if doi != None:
+                shape_template['doi'] = doi
+            else:
+                shape_template['doi'] = 'no doi'
+
+            if source != None:
+                shape_template['source'] = source
+            else:
+                shape_template['source'] = 'no source'
+
             shape_template['polarity'] = 1
             #shape_template['azimuth'] = azimuth
             #shape_template['dip'] = dip
@@ -351,7 +583,7 @@ class observations(object):
         #Keyword Args assingment
         
         # metadata
-        input_id = kwargs.get('input_id')
+        input_ID = kwargs.get('input_ID')
         input_type = kwargs.get('input_type')
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
@@ -379,32 +611,7 @@ class observations(object):
         for file in file_list:
             shp_to_add = gpd.read_file(self.data_path+file)
             shape_template = pd.DataFrame(None)
-            #Metadata logic tree
-            if input_id != None:
-                shape_template['input_ID'] = input_id
-            else:
-                shape_template['input_ID'] = self.input_id_counter
-                self.input_id_counter = self.input_id_counter+1
-
-            if input_type != None:
-                shape_template['input_type'] = input_type
-            else:
-                shape_template['input_type'] = 'Unknown'
             
-            if self_correlation != None:
-                shape_template['correlation'] = self_correlation
-            else:
-                shape_template['correlation'] = 0
-
-            if doi != None:
-                shape_template['doi'] = doi
-            else:
-                shape_template['doi'] = 'no doi'
-
-            if source != None:
-                shape_template['source'] = source
-            else:
-                shape_template['source'] = 'no souce'
 
             #point data logic tree
             shape_template['X'] = shp_to_add.geometry.x
@@ -460,7 +667,34 @@ class observations(object):
                 shape_template['max_depth_confidence'] = max_conf
             else:
                 shape_template['max_depth_confidence'] = None 
+                
+            #Metadata logic tree
+            
+            if input_ID != None:
+                shape_template['input_ID'] = input_ID
+            else:
+                shape_template['input_ID'] = self.input_ID_counter
+                self.input_ID_counter = self.input_ID_counter+1
 
+            if input_type != None:
+                shape_template['input_type'] = input_type
+            else:
+                shape_template['input_type'] = 'Unknown'
+            
+            if self_correlation != None:
+                shape_template['correlation'] = self_correlation
+            else:
+                shape_template['correlation'] = 0
+
+            if doi != None:
+                shape_template['doi'] = doi
+            else:
+                shape_template['doi'] = 'no doi'
+
+            if source != None:
+                shape_template['source'] = source
+            else:
+                shape_template['source'] = 'no source'
 
             shape_template['polarity'] = 1
             #shape_template['azimuth'] = azimuth
@@ -575,7 +809,7 @@ class observations(object):
         #Keyword Args assingment
         
         # metadata
-        input_id = kwargs.get('input_id')
+        input_ID = kwargs.get('input_ID')
         input_type = kwargs.get('input_type')
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
@@ -617,11 +851,11 @@ class observations(object):
         df['polarity'] = polarity
 
         #Metadata logic tree
-        if input_id != None:
-            df['input_ID'] = input_id
+        if input_ID != None:
+            df['input_ID'] = input_ID
         else:
-            df['input_ID'] = self.input_id_counter
-            self.input_id_counter = self.input_id_counter+1
+            df['input_ID'] = self.input_ID_counter
+            self.input_ID_counter = self.input_ID_counter+1
 
         if input_type != None:
             df['input_type'] = input_type
@@ -692,7 +926,7 @@ class observations(object):
         #Keyword Args assingment
         
         # metadata
-        input_id = kwargs.get('input_id')
+        input_ID = kwargs.get('input_ID')
         input_type = kwargs.get('input_type')
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
@@ -731,11 +965,11 @@ class observations(object):
         df['polarity'] = polarity
 
         #Metadata logic tree
-        if input_id != None:
-            df['input_ID'] = input_id
+        if input_ID != None:
+            df['input_ID'] = input_ID
         else:
-            df['input_ID'] = self.input_id_counter
-            self.input_id_counter = self.input_id_counter+1
+            df['input_ID'] = self.input_ID_counter
+            self.input_ID_counter = self.input_ID_counter+1
 
         if input_type != None:
             df['input_type'] = input_type
@@ -800,7 +1034,7 @@ class observations(object):
         #Keyword Args assingment
         
         # metadata
-        input_id = kwargs.get('input_id')
+        input_ID = kwargs.get('input_ID')
         input_type = kwargs.get('input_type')
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
@@ -830,11 +1064,11 @@ class observations(object):
             shape_template.rename(columns={'Name': 'formation'}, inplace=True)
 
         #Metadata logic tree
-        if input_id != None:
-            shape_template['input_ID'] = input_id
+        if input_ID!= None:
+            shape_template['input_ID'] = input_ID
         else:
-            shape_template['input_ID'] = self.input_id_counter
-            self.input_id_counter = self.input_id_counter+1
+            shape_template['input_ID'] = self.input_ID_counter
+            self.input_ID_counter = self.input_ID_counter+1
 
         if input_type != None:
             shape_template['input_type'] = input_type
@@ -908,7 +1142,7 @@ class observations(object):
         #Keyword Args assingment
         
         # metadata
-        input_id = kwargs.get('input_id')
+        input_ID = kwargs.get('input_ID')
         input_type = kwargs.get('input_type')
         self_correlation = kwargs.get('self_correlation')
         doi = kwargs.get('doi')
@@ -938,11 +1172,11 @@ class observations(object):
             shape_template.rename(columns={'Name': 'formation'}, inplace=True)
         
         #Metadata logic tree
-        if input_id != None:
-            shape_template['input_ID'] = input_id
+        if input_ID != None:
+            shape_template['input_ID'] = input_ID
         else:
-            shape_template['input_ID'] = self.input_id_counter
-            self.input_id_counter = self.input_id_counter+1
+            shape_template['input_ID'] = self.input_ID_counter
+            self.input_ID_counter = self.input_ID_counter+1
 
         if input_type != None:
             shape_template['input_type'] = input_type
@@ -1025,14 +1259,14 @@ class observations(object):
         export_path = self.output_path+self.output_prefix+filename
         self.orients.to_csv(export_path)
         print(f"completed exporting: {export_path}")
-    
+    '''
     def display_3D(self):   #This is not working well yet
         fig, axs = plt.subplots(1, 1, figsize = (12,12), subplot_kw={'projection': '3d'}, sharey=True, sharex=True)
         fig.set_tight_layout(tight="tight")
 
         axs.scatter(self.orients['X'], self.orients['Y'], self.orients['Z'], color='red', marker='o', s=3, label='Orientations')
         axs.scatter(self.interfaces['X'], self.interfaces['Y'], self.interfaces['Z'], color='blue', marker='.', s=4, label='Interfaces')
-
+    '''
 
     def interfacesDF(self):
         return self.interfaces
