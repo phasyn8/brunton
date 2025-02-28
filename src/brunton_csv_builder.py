@@ -1055,6 +1055,7 @@ class observations(object):
         file = self.data_path+filename
         inputgdf = gpd.read_file(file)
         inputgdf['dZ'] = 0
+        #shape_template['polarity'] = 1
         #print(inputgdf.head(3))
         shape_template = gg.vector.extract_orientations_from_map(gdf=inputgdf)
         shape_template['Z'] = z
@@ -1166,6 +1167,7 @@ class observations(object):
         #print(inputgdf.head(3))
         shape_template = gg.vector.extract_orientations_from_map(gdf=inputgdf)
         shape_template['Z'] = z
+        #shape_template['polarity'] = 1
         if formation != None:
             shape_template['formation'] = formation
         else:
@@ -1247,6 +1249,330 @@ class observations(object):
         df['dip'] = dip 
         self.interfaces = pd.concat((self.interfaces,df.sample(frac=fraction)))
 
+
+    def add_and_explode_multilinestring_z_shapefile_to_interfaces(self, input_data, fraction=1, z=0, azimuth_reverse=True, **kwargs):
+        """
+        Accepts a GeoDataFrame, a slice of a GeoDataFrame, or a shapefile path. 
+        Extracts individual line strings and returns a Pandas DataFrame with X, Y, Z coordinates, 
+        segment azimuth, and all original attributes.
+        """
+        def calculate_azimuth(p1, p2):
+            """Calculate azimuth (bearing) in degrees between two points."""
+            delta_x = p2[0] - p1[0]
+            delta_y = p2[1] - p1[1]
+            angle = np.arctan2(delta_x, delta_y)  # Azimuth relative to North
+            azimuth = np.degrees(angle)  # Convert to degrees
+            return (azimuth + 360) % 360  # Normalize to [0, 360] range
+        #Keyword Args assingment
+        
+        # metadata
+        input_ID = kwargs.get('input_ID')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
+
+        dip = kwargs.get('dip')
+        formation = kwargs.get('formation')
+        X_variance = kwargs.get('xvar')
+        Y_variance = kwargs.get('yvar') 
+        Z_variance = kwargs.get('zvar')
+        dip_variance = kwargs.get('dipvar')
+        azimuth_variance = kwargs.get('azivar')
+        
+        if isinstance(input_data, str):
+            gdf = gpd.read_file(input_data)
+        elif isinstance(input_data, gpd.GeoDataFrame):
+            gdf = input_data.copy()
+        else:
+            raise ValueError("Input must be a file path or a GeoDataFrame.")
+        
+        records = []
+        
+        for _, row in gdf.iterrows():
+            geometry = row.geometry
+            if geometry.geom_type == 'MultiLineString':
+                lines = list(geometry.geoms)  # Extract individual LineStrings
+            elif geometry.geom_type == 'LineString':
+                lines = [geometry]
+            else:
+                continue  # Skip non-line geometries
+            
+            for line in lines:
+                coords = list(line.coords)
+                azimuth_values = []
+                
+                for i in range(len(coords) - 1):
+                    p1, p2 = coords[i], coords[i + 1]
+                    z1 = p1[2] if len(p1) > 2 else None  # Handle missing Z values
+                    z2 = p2[2] if len(p2) > 2 else None  # Handle missing Z values
+                    azimuth = calculate_azimuth(p1, p2)
+                    azimuth_values.append(azimuth)
+                    record = {**row.to_dict(), 'X': p1[0], 'Y': p1[1], 'Z': z1, 'azimuth': azimuth}
+                    records.append(record)
+                
+                # Append last point without azimuth
+                last_point = coords[-1]
+                last_z = last_point[2] if len(last_point) > 2 else None  # Handle missing Z values
+                last_azimuth = azimuth_values[-1] if azimuth_values else None  # Propagate last known azimuth
+                last_record = {**row.to_dict(), 'X': last_point[0], 'Y': last_point[1], 'Z': last_z, 'azimuth': last_azimuth}
+                records.append(last_record)
+        
+        gdf = pd.DataFrame(records)
+        gdf['polarity'] = 1
+        if formation != None:
+            gdf['formation'] = formation
+        else:
+            gdf.rename(columns={'Name': 'formation'}, inplace=True)
+        
+        #Metadata logic tree
+        if input_ID != None:
+            gdf['input_ID'] = input_ID
+        else:
+            gdf['input_ID'] = self.input_ID_counter
+            self.input_ID_counter = self.input_ID_counter+1
+
+        if input_type != None:
+            gdf['input_type'] = input_type
+        else:
+            gdf['input_type'] = 'Unknown'
+            
+        if self_correlation != None:
+            gdf['correlation'] = self_correlation
+        else:
+            gdf['correlation'] = 0
+
+        if doi != None:
+            gdf['doi'] = doi
+        else:
+            gdf['doi'] = 'no doi'
+
+        if source != None:
+            gdf['source'] = source
+        else:
+            gdf['source'] = 'no source'
+
+            #point data variance logic tree
+        if X_variance != None:
+            gdf['X_variance'] = X_variance
+        else:
+            gdf['X_variance'] = 1
+
+        if Y_variance != None:
+            gdf['Y_variance'] = Y_variance
+        else:
+            gdf['Y_variance'] = 1
+
+        if Z_variance != None:
+            gdf['Z_variance'] = Z_variance
+        else:
+            gdf['Z_variance'] = 1
+            
+        if azimuth_variance != None:
+            gdf['azimuth_variance'] = azimuth_variance
+        else:
+            gdf['azimuth_variance'] = 1
+            
+        if dip_variance != None:
+            gdf['dip_variance'] = dip_variance
+        else:
+            gdf['dip_variance'] = 1
+
+        if min_conf != None:
+            gdf['min_depth_confidence'] = min_conf
+        else:
+            gdf['min_depth_confidence'] = None
+            
+        if max_conf != None:
+            gdf['max_depth_confidence'] = max_conf
+        else:
+            gdf['max_depth_confidence'] = None     
+        
+
+        df = pd.DataFrame(gdf, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
+                        "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance', 
+                        'min_depth_confidence','max_depth_confidence'])
+        
+        if azimuth_reverse:
+            df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
+        else:
+            df['azimuth'] = df['azimuth']-90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults
+        df['dip'] = dip 
+
+        self.interfaces = pd.concat((self.interfaces,df.sample(frac=fraction)))
+
+
+        
+        #df.drop(columns=['geometry'], inplace=True)  # Remove original geometry column
+        #return df
+  
+    def add_and_explode_multilinestring_z_shapefile_to_orients(self, input_data, fraction=1, z=0, azimuth_reverse=True, **kwargs):
+        """
+        Accepts a GeoDataFrame, a slice of a GeoDataFrame, or a shapefile path. 
+        Extracts individual line strings and returns a Pandas DataFrame with X, Y, Z coordinates, 
+        segment azimuth, and all original attributes.
+        """
+        def calculate_azimuth(p1, p2):
+            """Calculate azimuth (bearing) in degrees between two points."""
+            delta_x = p2[0] - p1[0]
+            delta_y = p2[1] - p1[1]
+            angle = np.arctan2(delta_x, delta_y)  # Azimuth relative to North
+            azimuth = np.degrees(angle)  # Convert to degrees
+            return (azimuth + 360) % 360  # Normalize to [0, 360] range
+        #Keyword Args assingment
+        
+        # metadata
+        input_ID = kwargs.get('input_ID')
+        input_type = kwargs.get('input_type')
+        self_correlation = kwargs.get('self_correlation')
+        doi = kwargs.get('doi')
+        source = kwargs.get('source')
+
+        #confidence elevation in True vertical depth
+        min_conf = kwargs.get('min_depth_confidence')
+        max_conf = kwargs.get('max_depth_confidence')
+
+        dip = kwargs.get('dip')
+        formation = kwargs.get('formation')
+        X_variance = kwargs.get('xvar')
+        Y_variance = kwargs.get('yvar') 
+        Z_variance = kwargs.get('zvar')
+        dip_variance = kwargs.get('dipvar')
+        azimuth_variance = kwargs.get('azivar')
+        
+        if isinstance(input_data, str):
+            gdf = gpd.read_file(input_data)
+        elif isinstance(input_data, gpd.GeoDataFrame):
+            gdf = input_data.copy()
+        else:
+            raise ValueError("Input must be a file path or a GeoDataFrame.")
+        
+        records = []
+        
+        for _, row in gdf.iterrows():
+            geometry = row.geometry
+            if geometry.geom_type == 'MultiLineString':
+                lines = list(geometry.geoms)  # Extract individual LineStrings
+            elif geometry.geom_type == 'LineString':
+                lines = [geometry]
+            else:
+                continue  # Skip non-line geometries
+            
+            for line in lines:
+                coords = list(line.coords)
+                azimuth_values = []
+                
+                for i in range(len(coords) - 1):
+                    p1, p2 = coords[i], coords[i + 1]
+                    z1 = p1[2] if len(p1) > 2 else None  # Handle missing Z values
+                    z2 = p2[2] if len(p2) > 2 else None  # Handle missing Z values
+                    azimuth = calculate_azimuth(p1, p2)
+                    azimuth_values.append(azimuth)
+                    record = {**row.to_dict(), 'X': p1[0], 'Y': p1[1], 'Z': z1, 'azimuth': azimuth}
+                    records.append(record)
+                
+                # Append last point without azimuth
+                last_point = coords[-1]
+                last_z = last_point[2] if len(last_point) > 2 else None  # Handle missing Z values
+                last_azimuth = azimuth_values[-1] if azimuth_values else None  # Propagate last known azimuth
+                last_record = {**row.to_dict(), 'X': last_point[0], 'Y': last_point[1], 'Z': last_z, 'azimuth': last_azimuth}
+                records.append(last_record)
+        
+        gdf = pd.DataFrame(records)
+        gdf['polarity'] = 1
+        if formation != None:
+            gdf['formation'] = formation
+        else:
+            gdf.rename(columns={'Name': 'formation'}, inplace=True)
+        
+        #Metadata logic tree
+        if input_ID != None:
+            gdf['input_ID'] = input_ID
+        else:
+            gdf['input_ID'] = self.input_ID_counter
+            self.input_ID_counter = self.input_ID_counter+1
+
+        if input_type != None:
+            gdf['input_type'] = input_type
+        else:
+            gdf['input_type'] = 'Unknown'
+            
+        if self_correlation != None:
+            gdf['correlation'] = self_correlation
+        else:
+            gdf['correlation'] = 0
+
+        if doi != None:
+            gdf['doi'] = doi
+        else:
+            gdf['doi'] = 'no doi'
+
+        if source != None:
+            gdf['source'] = source
+        else:
+            gdf['source'] = 'no source'
+
+            #point data variance logic tree
+        if X_variance != None:
+            gdf['X_variance'] = X_variance
+        else:
+            gdf['X_variance'] = 1
+
+        if Y_variance != None:
+            gdf['Y_variance'] = Y_variance
+        else:
+            gdf['Y_variance'] = 1
+
+        if Z_variance != None:
+            gdf['Z_variance'] = Z_variance
+        else:
+            gdf['Z_variance'] = 1
+            
+        if azimuth_variance != None:
+            gdf['azimuth_variance'] = azimuth_variance
+        else:
+            gdf['azimuth_variance'] = 1
+            
+        if dip_variance != None:
+            gdf['dip_variance'] = dip_variance
+        else:
+            gdf['dip_variance'] = 1
+
+        if min_conf != None:
+            gdf['min_depth_confidence'] = min_conf
+        else:
+            gdf['min_depth_confidence'] = None
+            
+        if max_conf != None:
+            gdf['max_depth_confidence'] = max_conf
+        else:
+            gdf['max_depth_confidence'] = None     
+        
+
+        df = pd.DataFrame(gdf, columns=["input_ID", 'input_type', 'correlation', 'doi', 'source',
+                        "X", "Y", "Z", 'formation', 'azimuth', 'dip', 'polarity', 
+                        'X_variance', 'Y_variance', 'Z_variance', 'azimuth_variance', 'dip_variance', 
+                        'min_depth_confidence','max_depth_confidence'])
+        
+        if azimuth_reverse:
+            df['azimuth'] = df['azimuth']+90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults 
+        else:
+            df['azimuth'] = df['azimuth']-90 # to orient vector 90 deg from the map azimuth this should really only be applied to faults
+        df['dip'] = dip 
+
+        self.interfaces = pd.concat((self.orients,df.sample(frac=fraction)))
+
+
+        
+        #df.drop(columns=['geometry'], inplace=True)  # Remove original geometry column
+        #return df
+  
+  
     # _____________ EXPORTING AND VISUALIZATION FUNCTIONS ________________
 
 
